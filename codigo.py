@@ -5,7 +5,7 @@ import random
 import time
 from datetime import datetime
 
-
+### Singleton
 class Gestor:
     _unicaInstancia = None
     def __init__(self):
@@ -25,6 +25,7 @@ class Gestor:
         umbral = Umbral(crecimiento)
         estadistico = Estadisticos(umbral)
         simular_sensor(sensor)
+        
 # Definición de la clase Observable (Sujeto)
 class Observable:
     def __init__(self):
@@ -78,9 +79,9 @@ class Operator(Observer):
         self._estadistico.handle_request(temperaturas)
 ### Chain of responsability
 class Handler:
-    def __init__(self, succesor=None):
-        self.succesor=succesor
-    def handle_request(self,requiest):
+    def __init__(self, successor=None):
+        self.successor=successor
+    def handle_request(self,request):
         pass
     
 class Estadisticos(Handler):
@@ -95,24 +96,32 @@ class Estadisticos(Handler):
         maximo = Maximo('maximo')
         contexto.establecerEstrategia(media)
         contexto.calculoEstadisticos()
-        if isinstance(self.succesor, Handler):
-            self.succesor.handle_request(request)
-        else:
-            raise Exception('El siguiente elemento en la cadena de de responsabilidad debe de ser un Handler')
+        if self.successor:
+            if isinstance(self.successor, Handler):
+                self.successor.handle_request(request)
+            else:
+                raise Exception('El siguiente elemento en la cadena de de responsabilidad debe de ser un Handler')
 
 class Umbral(Handler):
     def handle_request(self, request):
         if request[-1] > 32:
             print('¡ALERTA! La temperatura ha sobrepasado los 32 grados. ¡ALERTA!')
-        self.succesor.handle_request(request)
+        if self.successor:
+            if isinstance(self.successor, Handler):
+                self.successor.handle_request(request)
+            else:
+                raise Exception('El siguiente elemento en la cadena de de responsabilidad debe de ser un Handler')
 
 class Crecimiento(Handler):
     def handle_request(self, request):
         if len(request) >= 6:
             if request[-1] - request[-6] >= 10:
                 print('¡ALERTA! La temperatura ha ascendido más de diez grados en los últimos 30 segundos. ¡ALERTA!')
-        if self.succesor:
-            self.succesor.handle_request(request)
+        if self.successor:
+            if isinstance(self.successor, Handler):
+                self.successor.handle_request(request)
+            else:
+                raise Exception('El siguiente elemento en la cadena de de responsabilidad debe de ser un Handler')
 
 ### Strategy
 class ContextoCalculoEstadisticos:
