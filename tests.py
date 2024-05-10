@@ -4,15 +4,10 @@ import math
 import random
 import time
 from datetime import datetime
+from numpy import mean, median, std
+import pytest
 
-### Usamos el patrón Singleton para cumplir el requisito 1.
 class Gestor:
-    '''
-    Descripción: Patrón Singleton para asegurarnos de tener solo una instancia de la clase Gestor.
-    Métodos: 
-        obtener_instancia: devuelve la instancia del Gestor.
-        iniciar_proceso: inicia todo el proceso solicitado por el enunciado.
-    '''
     _unicaInstancia = None
     def __init__(self):
         pass
@@ -31,16 +26,8 @@ class Gestor:
         umbral = Umbral(crecimiento)
         estadistico = Estadisticos(umbral)
         simular_sensor(sensor)
-        
-### Usamos el patrón Observer para cumplir el requisito 2.
+# Definición de la clase Observable (Sujeto)
 class Observable:
-    '''
-    Descripción: clase de la que heredan los distintos observables del patrón Observer.
-    Métodos:
-        register_observer(observer: Observer): añade a la lista de observers un observer nuevo.
-        remove_observer (observer: Observer): elimina un observer de la lista de observers.
-        notify_observers(data): recorre toda la lista de observers notificándolas con los nuevos datos.
-    '''
     def __init__(self):
         self._observers = []
 
@@ -60,24 +47,14 @@ class Observable:
         for observer in self._observers:
             observer.update(data)
 
+# Definición de la clase Observer
 class Observer(ABC):
-    '''
-    Descripción: clase de la que heredan los distintos observers del patrón Observer.
-    Métodos:
-        update(data)
-    '''
     @abstractmethod
     def update(self, data):
         pass
 
+# Definición de la clase Sensor (Sujeto observable)
 class Sensor(Observable):
-    '''
-    Descripción: clase que simulará el envío de datos del sensor.
-    Atributos: 
-        name(str): nombre del sensor.
-    Métodos:
-        set_value(value): notifica a la lista de observers con el nuevo valor.
-    '''
     def __init__(self, name):
         super().__init__()
         self.name = name
@@ -87,14 +64,8 @@ class Sensor(Observable):
         self.value = value
         self.notify_observers(self.value)
 
+# Definición de la clase Operador (Observador)
 class Operator(Observer):
-    '''
-    Descripción: clase que recibe los datos enviados por el sensor y se encarga de su procesamiento.
-    Atributos:
-        name(str): nombre del operador.
-    Métodos:
-        update(data): cuando el sensor envía datos, se encarga de procesarlos.
-    '''
     def __init__(self, name):
         self.name = name
         self.historico = []
@@ -106,30 +77,17 @@ class Operator(Observer):
         self.historico.append(data)
         temperaturas = list(map(lambda x: x[1], self.historico))
         self._estadistico.handle_request(temperaturas)
-        
-### Usamos el patrón Chain of responsability para cumplir el requisito 3.
+### Chain of responsability
 class Handler:
-    '''
-    Descripción: clase de la que heredan los distintos Handler de la cadena de responsabilidad.
-    Atributos:
-        successor(Handler): por defector None, establece el siguiente Handler en la cadena de responsabilidad.
-    Métodos:
-        handler_request
-    '''
     def __init__(self, succesor=None):
         if isinstance(succesor, Handler) or not succesor:
             self.succesor=succesor
         else:
             raise Exception('El siguiente elemento en la cadena de de responsabilidad debe de ser un Handler')
-    def handle_request(self,request):
+    def handle_request(self,requiest):
         pass
     
 class Estadisticos(Handler):
-    '''
-    Descripción: Handler que se encarga del primer punto del requisito 3.
-    Métodos: 
-        handle_request(request): imprime la media y la desviacion estándar y llama al siguiente Handler de la cadena de responsabilidad.
-    '''
     def handle_request(self,request):
         if len(request) < 12:
             data = request
@@ -146,11 +104,6 @@ class Estadisticos(Handler):
             self.succesor.handle_request(request)
 
 class Umbral(Handler):
-    '''
-    Descripción: Handler que se encarga del segundo punto del requisito 3.
-    Métodos: 
-        handle_request(request): alerta en caso de que el dato sea mayor que 32 (nuestro umbral) y llama al siguiente Handler de la cadena de responsabilidad.
-    '''    
     def handle_request(self, request):
         if request[-1] > 32:
             print('¡ALERTA! La temperatura ha sobrepasado los 32 grados. ¡ALERTA!')
@@ -159,11 +112,6 @@ class Umbral(Handler):
 
 
 class Crecimiento(Handler):
-    '''
-    Descripción: Handler que se encarga del tercer punto del requisito 3.
-    Métodos: 
-        handle_request(request): alerta en caso de que la temperatura haya ascendido más de diez grados en los últimos 30 segundos y llama al siguiente Handler de la cadena de responsabilidad.
-    '''    
     def handle_request(self, request):
         if len(request) >= 6:
             if request[-1] - request[-6] >= 10:
@@ -171,17 +119,8 @@ class Crecimiento(Handler):
         if self.succesor:
             self.succesor.handle_request(request)
 
-### Usamos el patrón Strategy para cumplir el requisito 4.
+### Strategy
 class ContextoCalculoEstadisticos:
-    '''
-    Descripción: clase a través de la que calculamos estadísticos y establecemos con que estrategia calcularlos.
-    Atributos:
-        datos(List of int): datos de los que calcularemos los estadísticos
-        estrategia(Estrategia): por defecto None, estrategia con la que calcularemos los estadísticos.
-    Métodos:
-        establecerEstrategia(estrategiaNueva: Estrategia): establece la estrategia con la que calcularemos los estadísticos.
-        calculosEstadisticos(): calcula los estadísticos con la estrategia establecida.
-    '''
     def __init__(self, datos, estrategia = None):
         self.datos = datos
         self.estrategia = estrategia
@@ -196,24 +135,12 @@ class ContextoCalculoEstadisticos:
         return self.estrategia.calculo(self.datos)
 
 class Estrategia(ABC):
-    '''
-    Descripción: clase de la que heredan las distintas estrategias.
-    Métodos:
-        calculo(datos)
-    '''
     @abstractmethod
     def calculo(datos):
         pass
 
 
 class Media(Estrategia):
-    '''
-    Descripción: estrategia que calcula la media y la desviación estándar.
-    Atributos:
-        nombre(str): nombre de la estrategia.
-    Métodos:
-        calculo(datos: List of int): devuelve la media y la desviación estándar redondeados a dos decimales.
-    '''
     def __init__(self, nombre):
         self.nombre = nombre
 
@@ -227,14 +154,6 @@ class Media(Estrategia):
         return round(media, 2), round(desviacion_estandar, 2)
 
 class Mediana(Estrategia):
-    '''
-    Descripción: estrategia que calcula la mediana.
-    Atributos:
-        nombre(str): nombre de la estrategia.
-    Métodos:
-        calculo(datos: List of int): devuelve la mediana.    
-    
-    '''
     def __init__(self, nombre):
         self.nombre = nombre
     
@@ -251,13 +170,6 @@ class Mediana(Estrategia):
             return lista_ordenada[longitud // 2]
 
 class Maximo(Estrategia):
-    '''
-    Descripción: estrategia que calcula el máximo y el mínimo.
-    Atributos:
-        nombre(str): nombre de la estrategia.
-    Métodos:
-        calculo(datos: List of int): devuelve el máximo y el mínimo.
-    '''
     def __init__(self, nombre):
         self.nombre = nombre
     
@@ -275,6 +187,48 @@ def simular_sensor(sensor):
         time.sleep(5)
 
 
-if __name__ == '__main__':
-    g = Gestor.obtener_instancia()
-    Gestor.iniciar_proceso()
+# TESTS UNITARIOS EN PYTEST
+
+def test_unica_instancia_singleton():
+    gestor1 = Gestor.obtener_instancia()
+    gestor2 = Gestor.obtener_instancia()
+    assert gestor1 == gestor2
+
+def test_successor():
+    with pytest.raises(Exception):
+        calculo_estadisticos = Estadisticos('ejemplo')
+
+def test_establecer_estrategia():
+    with pytest.raises(Exception):
+        lista_ejemplo = [5, 10, -3, 8, 0, -7, 20, -1, 15, -10]
+        contexto = ContextoCalculoEstadisticos(lista_ejemplo)
+        contexto.establecerEstrategia('ejemplo')
+
+def test_calculo_estadisticos1():
+    lista_ejemplo = [5, 10, -3, 8, 0, -7, 20, -1, 15, -10]
+    media = Media('media')
+    contexto = ContextoCalculoEstadisticos(lista_ejemplo)
+    contexto.establecerEstrategia(media)
+    media1, de1 = contexto.calculoEstadisticos()
+    media2 = round(mean(lista_ejemplo), 2)
+    de2 = round(std(lista_ejemplo), 2)
+    assert media1 == media2 and de1 == de2
+
+def test_calculo_estadisticos2():
+    lista_ejemplo = [5, 10, -3, 8, 0, -7, 20, -1, 15, -10]
+    mediana = Mediana('mediana')
+    contexto = ContextoCalculoEstadisticos(lista_ejemplo)
+    contexto.establecerEstrategia(mediana)
+    mediana1 = contexto.calculoEstadisticos()
+    mediana2 = median(lista_ejemplo)
+    assert mediana1 == mediana2
+
+def test_calculo_estadisticos3():
+    lista_ejemplo = [5, 10, -3, 8, 0, -7, 20, -1, 15, -10]
+    maximos = Maximo('maximos')
+    contexto = ContextoCalculoEstadisticos(lista_ejemplo)
+    contexto.establecerEstrategia(maximos)
+    max1, min1 = contexto.calculoEstadisticos()
+    max2 = max(lista_ejemplo)
+    min2 = min(lista_ejemplo)
+    assert max1 == max2 and min1 == min2
